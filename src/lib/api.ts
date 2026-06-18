@@ -3,7 +3,8 @@ import type {
   FeatureRequest,
   HistoryRecord,
   EvaluateResponse,
-  Environment
+  Environment,
+  FeatureWithInsights
 } from '../../shared/types.js';
 
 const API_BASE = '/api';
@@ -60,6 +61,41 @@ export const api = {
       request<ApiResponse<HistoryRecord[]>>(
         `/features/${id}/history?limit=${limit}&offset=${offset}`
       ),
+
+    getInsights: () =>
+      request<ApiResponse<FeatureWithInsights[]>>('/features/insights'),
+
+    getByIdInsights: (id: string) =>
+      request<ApiResponse<FeatureWithInsights>>(`/features/${id}/insights`),
+
+    getDashboard: () =>
+      request<ApiResponse<{
+        totalFeatures: number;
+        avgCompleteness: number;
+        totalErrors: number;
+        totalWarnings: number;
+        totalReadyToRelease: number;
+        byEnvironment: Record<Environment, {
+          total: number;
+          active: number;
+          gradual: number;
+          disabled: number;
+          complete: number;
+          partial: number;
+          incomplete: number;
+          errors: number;
+          warnings: number;
+          readyToRelease: number;
+        }>;
+        recentChanges: Array<{
+          featureId: string;
+          featureName: string;
+          operation: 'create' | 'update' | 'delete';
+          operator: string;
+          timestamp: string;
+          summary: string;
+        }>;
+      }>>('/features/dashboard'),
 
     create: (data: FeatureRequest) =>
       request<ApiResponse<Feature>>('/features', {

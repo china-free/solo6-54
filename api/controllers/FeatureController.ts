@@ -106,4 +106,37 @@ export class FeatureController {
       res.status(500).json({ error: (error as Error).message });
     }
   }
+
+  static async getAllWithInsights(req: Request, res: Response) {
+    try {
+      const insights = await FeatureService.getAllWithInsights();
+      res.json({ data: insights });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  }
+
+  static async getByIdWithInsights(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const insight = await FeatureService.getByIdWithInsights(id);
+
+      if (!insight) {
+        return res.status(404).json({ error: 'Feature not found' });
+      }
+
+      res.json({ data: insight });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  }
+
+  static async getDashboardStats(req: Request, res: Response) {
+    try {
+      const stats = await FeatureService.getDashboardStats();
+      res.json({ data: stats });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  }
 }

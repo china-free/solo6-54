@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import type { Feature, HistoryRecord, Environment } from '../../shared/types.js';
+import type { Feature, HistoryRecord, Environment, FeatureWithInsights } from '../../shared/types.js';
 import { api } from '../lib/api.js';
 
 interface StoreState {
   features: Feature[];
+  featureInsights: FeatureWithInsights[];
   selectedEnvironment: Environment;
   history: HistoryRecord[];
   stats: {
@@ -15,12 +16,41 @@ interface StoreState {
       disabled: number;
     }>;
   } | null;
+  dashboardStats: {
+    totalFeatures: number;
+    avgCompleteness: number;
+    totalErrors: number;
+    totalWarnings: number;
+    totalReadyToRelease: number;
+    byEnvironment: Record<Environment, {
+      total: number;
+      active: number;
+      gradual: number;
+      disabled: number;
+      complete: number;
+      partial: number;
+      incomplete: number;
+      errors: number;
+      warnings: number;
+      readyToRelease: number;
+    }>;
+    recentChanges: Array<{
+      featureId: string;
+      featureName: string;
+      operation: 'create' | 'update' | 'delete';
+      operator: string;
+      timestamp: string;
+      summary: string;
+    }>;
+  } | null;
   loading: boolean;
   error: string | null;
 
   setEnvironment: (env: Environment) => void;
   fetchFeatures: () => Promise<void>;
   fetchStats: () => Promise<void>;
+  fetchFeatureInsights: () => Promise<void>;
+  fetchDashboardStats: () => Promise<void>;
   fetchHistory: (featureId?: string) => Promise<void>;
   createFeature: (data: any) => Promise<Feature>;
   updateFeature: (id: string, data: any) => Promise<Feature | null>;
@@ -29,9 +59,11 @@ interface StoreState {
 
 export const useStore = create<StoreState>((set, get) => ({
   features: [],
+  featureInsights: [],
   selectedEnvironment: 'production',
   history: [],
   stats: null,
+  dashboardStats: null,
   loading: false,
   error: null,
 
@@ -57,6 +89,26 @@ export const useStore = create<StoreState>((set, get) => ({
     }
   },
 
+  fetchFeatureInsights: async () => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.features.getInsights();
+      set({ featureInsights: response.data, loading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, loading: false });
+    }
+  },
+
+  fetchDashboardStats: async () => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.features.getDashboard();
+      set({ dashboardStats: response.data, loading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, loading: false });
+    }
+  },
+
   fetchHistory: async (featureId?: string) => {
     set({ loading: true, error: null });
     try {
@@ -77,7 +129,11 @@ export const useStore = create<StoreState>((set, get) => ({
         features: [response.data, ...state.features],
         loading: false
       }));
-      await get().fetchStats();
+      await Promise.all([
+        get().fetchStats(),
+        get().fetchFeatureInsights(),
+        get().fetchDashboardStats()
+      ]);
       return response.data;
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
@@ -95,7 +151,11 @@ export const useStore = create<StoreState>((set, get) => ({
         ),
         loading: false
       }));
-      await get().fetchStats();
+      await Promise.all([
+        get().fetchStats(),
+        get().fetchFeatureInsights(),
+        get().fetchDashboardStats()
+      ]);
       return response.data;
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
@@ -111,7 +171,11 @@ export const useStore = create<StoreState>((set, get) => ({
         features: state.features.filter((f) => f.id !== id),
         loading: false
       }));
-      await get().fetchStats();
+      await Promise.all([
+        get().fetchStats(),
+        get().fetchFeatureInsights(),
+        get().fetchDashboardStats()
+      ]);
       return true;
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
