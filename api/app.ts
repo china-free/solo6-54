@@ -8,6 +8,7 @@ import featuresRouter from './routes/features.js';
 import evaluateRouter from './routes/evaluate.js';
 import historyRouter from './routes/history.js';
 import { validateEnvironment } from './middleware/validateEnv.js';
+import { enhancedJsonParser } from './middleware/jsonBodyParser.js';
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(enhancedJsonParser);
 app.use(express.urlencoded({ extended: true }));
 
 app.use(validateEnvironment);
